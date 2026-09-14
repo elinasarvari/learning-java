@@ -1,0 +1,26 @@
+# Local Redis for the caching example.
+#
+#   docker compose up -d redis     # start
+#   docker compose down            # stop
+#   docker compose exec redis redis-cli    # poke around
+#
+# Nothing here is persisted: the cache is disposable by definition, and starting from an
+# empty keyspace on each run makes the miss/hit behaviour easier to observe.
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: learning-java-redis
+    ports:
+      - "6379:6379"
+    # allkeys-lru bounds memory: once maxmemory is reached Redis evicts the
+    # least-recently-used key rather than refusing writes. Without a policy the default
+    # is noeviction, which makes writes fail once memory fills up.
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
