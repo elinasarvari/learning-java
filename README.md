@@ -66,3 +66,39 @@ visible. Disable it with `app.catalog.simulated-latency-ms=0`.
 
 See [docs/architecture/caching-pattern.md](docs/architecture/caching-pattern.md) for the
 design rules and known gaps.
+
+#### Key/value comparison endpoints
+
+Compare a supplied parameter against what is stored under a key, without reading the
+value back out.
+
+```bash
+# Store a value (raw string, not JSON)
+curl -X PUT http://localhost:8080/api/cache/otp:user-1 \
+     -H 'Content-Type: application/json' -d '{"value":"483920","ttlSeconds":300}'
+
+# Compare — leaves the key in place, so it can be checked again
+curl -X POST http://localhost:8080/api/cache/otp:user-1/match \
+     -H 'Content-Type: application/json' -d '{"value":"483920"}'
+# -> {"key":"otp:user-1","matched":true,"ttlSeconds":287}
+
+# Compare and consume — succeeds exactly once (atomic GETDEL)
+curl -X POST http://localhost:8080/api/cache/otp:user-1/verify \
+     -H 'Content-Type: application/json' -d '{"value":"483920"}'
+
+# Presence and remaining TTL, without revealing the value
+curl http://localhost:8080/api/cache/otp:user-1/exists
+```
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `PUT` | `/api/cache/{key}` | Store a raw string. **503** if the write did not land |
+| `POST` | `/api/cache/{key}/match` | Compare; key survives |
+| `POST` | `/api/cache/{key}/verify` | Compare and delete on success (single-use) |
+| `GET` | `/api/cache/{key}/match?value=` | Same as POST match, for quick curl checks |
+| `GET` | `/api/cache/{key}/exists` | Presence + TTL only |
+| `DELETE` | `/api/cache/{key}` | Evict |
+| `GET` | `/api/cache/{key}` | Raw value — **403 unless** `app.cache.lookup.expose-values=true` |
+
+Missing key, expired key and wrong value all return `matched: false`. Distinguishing
+them would tell a caller which keys exist.

@@ -163,6 +163,48 @@ return toDomain(saved);
 
 ---
 
+## Two Value Families
+
+`RedisCache` has two families of operation. Mixing them on one key is the easiest mistake to make.
+
+| | Object cache | String cache |
+|---|---|---|
+| Methods | `get` / `put` / `getOrLoad` | `getString` / `putString` / `matches` / `consumeIfMatches` |
+| Stored as | JSON | Verbatim |
+| Use for | Domain records | Tokens, codes, flags, ETags |
+
+### STD-CACHE-010 — One family per key
+
+A key written with `put` MUST be read with `get`; a key written with `putString` MUST be read with `getString`.
+
+**Why**: `put("k", "abc")` stores `"abc"` **with quotes** — valid JSON for a string. `getString("k")` then returns `"abc"` including the quote characters, and every comparison against a raw parameter fails. Nothing errors; the check is just always false.
+
+### STD-CACHE-011 — Comparisons are constant-time
+
+`matches` and `consumeIfMatches` use `MessageDigest.isEqual`, not `String.equals`.
+
+**Why**: `String.equals` returns on the first differing character, so how long a failed check takes reveals how many leading characters were correct. Irrelevant for a cached ETag; a vulnerability the moment the value is a token or one-time code.
+
+### STD-CACHE-012 — Single-use values use `consumeIfMatches`
+
+A value that must work exactly once MUST be checked with `consumeIfMatches`, never `matches` followed by `evict`.
+
+**Why**: `consumeIfMatches` issues `GETDEL` — read and delete in one atomic command. A read-then-delete pair leaves a window in which two concurrent requests carrying the same correct code both succeed.
+
+### STD-CACHE-013 — Reads may degrade silently; writes may not
+
+Read operations return empty on failure. `putString` returns `boolean`, and callers reporting success to a user MUST check it.
+
+**Why**: a failed read has a valid answer — treat it as a miss. A failed write does not: telling a caller their code was stored when it was not sends them off with a value that can never verify. `PUT /api/cache/{key}` returns **503**, not 201, when the write is dropped.
+
+### STD-CACHE-014 — Comparison endpoints do not reveal values
+
+The `/match`, `/verify` and `/exists` endpoints return a boolean and a TTL. Raw value read-back is gated behind `app.cache.lookup.expose-values`, default `false`.
+
+**Why**: the caller supplies the key, and cached keys routinely hold tokens and personal data. An endpoint that echoes any value by key is a data-exposure hole with an authentication bypass attached. Missing, expired and wrong all collapse to `matched: false` for the same reason.
+
+---
+
 ## Serialization
 
 Values are stored as **plain JSON strings**, not with `GenericJackson2JsonRedisSerializer`.

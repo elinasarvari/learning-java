@@ -146,6 +146,85 @@ class RedisCacheTest {
         assertThat(result).isEqualTo(new Widget("1", "Gear"));
     }
 
+
+    // ------------------------------------------------------------------
+    // String values and comparison
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("putString stores the value verbatim, with no JSON quoting")
+    void putStringStoresVerbatim() {
+        cache.putString("otp:user-1", "483920", Duration.ofMinutes(5));
+
+        verify(valueOps).set("test:otp:user-1", "483920", Duration.ofMinutes(5));
+    }
+
+    @Test
+    @DisplayName("put() JSON-encodes a String, which is why putString exists")
+    void putJsonEncodesStrings() {
+        cache.put("otp:user-1", "483920", Duration.ofMinutes(5));
+
+        // Quoted - comparing this against the raw parameter would never match.
+        verify(valueOps).set("test:otp:user-1", "\"483920\"", Duration.ofMinutes(5));
+    }
+
+    @Test
+    @DisplayName("matches() is true only when the stored value is identical")
+    void matchesComparesStoredValue() {
+        when(valueOps.get("test:otp:user-1")).thenReturn("483920");
+
+        assertThat(cache.matches("otp:user-1", "483920")).isTrue();
+        assertThat(cache.matches("otp:user-1", "000000")).isFalse();
+    }
+
+    @Test
+    @DisplayName("matches() is false for a missing key rather than an error")
+    void matchesIsFalseWhenKeyAbsent() {
+        when(valueOps.get(anyString())).thenReturn(null);
+
+        assertThat(cache.matches("otp:expired", "483920")).isFalse();
+    }
+
+    @Test
+    @DisplayName("matches() is false for a null candidate and never touches Redis")
+    void matchesRejectsNullCandidate() {
+        assertThat(cache.matches("otp:user-1", null)).isFalse();
+        verify(valueOps, never()).get(anyString());
+    }
+
+    @Test
+    @DisplayName("consumeIfMatches() uses GETDEL so a correct value works exactly once")
+    void consumeIfMatchesDeletesOnSuccess() {
+        when(valueOps.getAndDelete("test:otp:user-1")).thenReturn("483920");
+
+        assertThat(cache.consumeIfMatches("otp:user-1", "483920")).isTrue();
+        verify(valueOps).getAndDelete("test:otp:user-1");
+    }
+
+    @Test
+    @DisplayName("consumeIfMatches() is false when the key is already consumed")
+    void consumeIfMatchesFailsOnSecondUse() {
+        when(valueOps.getAndDelete(anyString())).thenReturn(null);
+
+        assertThat(cache.consumeIfMatches("otp:user-1", "483920")).isFalse();
+    }
+
+    @Test
+    @DisplayName("timeToLive() returns empty when the key has no expiry")
+    void timeToLiveEmptyWithoutExpiry() {
+        when(redis.getExpire("test:otp:user-1")).thenReturn(-1L);
+
+        assertThat(cache.timeToLive("otp:user-1")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("timeToLive() reports the remaining window")
+    void timeToLiveReportsRemaining() {
+        when(redis.getExpire("test:otp:user-1")).thenReturn(287L);
+
+        assertThat(cache.timeToLive("otp:user-1")).contains(Duration.ofSeconds(287));
+    }
+
     @Test
     @DisplayName("CacheProperties applies its defaults when properties are absent")
     void cachePropertiesDefaults() {
