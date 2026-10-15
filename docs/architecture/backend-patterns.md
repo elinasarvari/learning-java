@@ -324,9 +324,12 @@ try {
 
 **Accepted Variant (VAR-BE-001)**: Complex multi-entity read models MAY bypass `Specification` and use a `@Query` with explicit JPQL and an interface projection, when the query is genuinely not composable.
 
+> **Per-user / per-tenant row filtering**: See [row-level-security-pattern.md STD-SEC-003](row-level-security-pattern.md). Note that security specifications deliberately do **not** follow the "return `null` when absent" idiom above — see STD-SEC-003 for why.
+
 **Anti-Patterns**:
 - ❌ Concatenating user input into a `@Query` string — always use `:namedParameters`
 - ❌ `@Transactional` on the repository interface
+- ❌ Injecting a service into a repository to resolve caller-derived constraints — see [row-level-security-pattern.md STD-SEC-001](row-level-security-pattern.md)
 - ❌ N+1 selects — use `@EntityGraph` or a `join fetch` when loading a collection you will iterate
 - ❌ `findAll()` with no `Pageable` on a table that can grow
 

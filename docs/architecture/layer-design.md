@@ -152,6 +152,8 @@ XxxEntity                  (repository.<feature>.entity)   ← JPA entity
 
 > **Implementation pattern**: See [backend-patterns.md STD-BE-004](backend-patterns.md).
 >
+> **Per-user / per-tenant row filtering**: See [row-level-security-pattern.md STD-SEC-001](row-level-security-pattern.md) — policy is resolved in `service/` and passed down as a value object; a repository MUST NOT inject the service that resolves it.
+>
 > **Current state**: `spring-boot-starter-data-jpa` and H2 are configured, but no `@Entity` or repository interface exists yet. This layer is entirely prescriptive today.
 
 ---
@@ -204,7 +206,7 @@ web/            XxxService              XxxRepository
 ```
 
 **FORBIDDEN**:
-- ❌ `repository/` referencing `service/`
+- ❌ `repository/` referencing `service/` — the commonest real-world instance of this is a policy/permission service injected into a repository to build a security predicate. See [row-level-security-pattern.md STD-SEC-001](row-level-security-pattern.md) for the correct shape.
 - ❌ `service/` referencing `web/` types (request/response records)
 - ❌ `web/` referencing `repository/` directly
 - ❌ `web/` referencing `@Entity` types

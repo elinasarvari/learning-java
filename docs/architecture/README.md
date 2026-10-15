@@ -25,6 +25,7 @@ Architecture guides for the **learning-java** application — a Spring Boot 3 / 
 | STD-INT-* | [integration-guide.md](integration-guide.md) | Apache Camel routes, `RestClient`, Resilience4j, external service config, caching |
 | STD-LAY-* | [layer-design.md](layer-design.md) | Layer boundary rules, dependency rules, package organisation (prose + cross-refs only, no code blocks) |
 | STD-DB-* | [database-patterns.md](database-patterns.md) | Standard audit columns, soft-delete, naming conventions, column data types |
+| STD-SEC-* | [row-level-security-pattern.md](row-level-security-pattern.md) | Row-level filtering, no service→repository dependency, policy value objects, fail-closed, authz placement |
 | STD-TST-* | [testing-guide.md](testing-guide.md) | JUnit 5 + Mockito, `@CamelSpringBootTest`, `renderWithProviders`, `data-testid`, coverage goals |
 
 ---
@@ -177,6 +178,23 @@ Architecture guides for the **learning-java** application — a Spring Boot 3 / 
 
 ---
 
+### [row-level-security-pattern.md](row-level-security-pattern.md)
+**What**: How to restrict *which rows* a user may see without injecting a service into a repository.
+
+**When to use**:
+- A list endpoint must return a per-user or per-tenant subset of a table
+- You are tempted to inject a policy/permission service into a repository
+- Reviewing where an authorization check belongs
+
+**Key concepts**:
+- Resolve policy in `service/`, pass it down as an immutable `EntityRestrictions` record — never inject a service into `repository/`
+- The filter is a `Specification<T>`, composed with ordinary filters via `Specification.allOf(...)`
+- Security specs return `cb.conjunction()`, never `null` — the `null`-is-skipped idiom is for optional filters only
+- `Page<T>` from one `Specification` feeds both the rows query and the count query; no hand-written `countXxx`
+- **Fail closed** — `catch (Exception e) { return emptyList(); }` on a policy path is a data leak
+
+---
+
 ### [integration-guide.md](integration-guide.md)
 **What**: Outbound HTTP patterns, Apache Camel route conventions, resilience, and external service configuration.
 
@@ -211,7 +229,8 @@ Architecture guides for the **learning-java** application — a Spring Boot 3 / 
 1. Read [layer-design.md](layer-design.md) → Quick Reference
 2. Read [backend-patterns.md](backend-patterns.md) → STD-BE-001 through STD-BE-011
 3. Read [database-patterns.md](database-patterns.md) → if the feature involves a new or modified table
-4. Read [frontend-patterns.md](frontend-patterns.md) for React patterns
+4. Read [row-level-security-pattern.md](row-level-security-pattern.md) → if any list endpoint returns a per-user or per-tenant subset
+5. Read [frontend-patterns.md](frontend-patterns.md) for React patterns
 
 ### Creating a New API Endpoint
 1. Follow [api-standards.md](api-standards.md) → Endpoint Checklist
