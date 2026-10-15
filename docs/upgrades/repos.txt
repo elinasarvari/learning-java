@@ -1,0 +1,8 @@
+# Repositories checked by /dep-verify (and put in scope by /dep-inventory).
+# One per line:  <path>  [verify-repo.sh args]
+#   --smoke              boot the packaged jar after tests and wait for "Started ... in"
+#   --build-cmd "<cmd>"  override auto-detection (./mvnw clean verify / ./gradlew clean build)
+# Point at the directory that holds pom.xml / build.gradle. Lines starting with # are ignored.
+# An upgrade folder may contain its own repos.txt to override this list.
+
+~/repos/learning-java/backend --smoke

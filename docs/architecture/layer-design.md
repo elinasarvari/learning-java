@@ -154,7 +154,7 @@ XxxEntity                  (repository.<feature>.entity)   ← JPA entity
 >
 > **Per-user / per-tenant row filtering**: See [row-level-security-pattern.md STD-SEC-001](row-level-security-pattern.md) — policy is resolved in `service/` and passed down as a value object; a repository MUST NOT inject the service that resolves it.
 >
-> **Current state**: `spring-boot-starter-data-jpa` and H2 are configured, but no `@Entity` or repository interface exists yet. This layer is entirely prescriptive today.
+> **Current state**: implemented by the `catalog` and `invoice` features. `InvoiceRepository` is the reference for `Specification`-based filtering; `ProductRepository` for a plain derived query.
 
 ---
 

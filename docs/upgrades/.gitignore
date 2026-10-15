@@ -1,0 +1,3 @@
+# Raw build/boot logs are large and machine-specific; summaries and diagnoses are kept.
+*.log
+_health/

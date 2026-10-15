@@ -1,10 +1,32 @@
 # Row-Level Security Filtering Pattern
 
-**Repo**: `backend/` | **Stack**: Spring Boot 3.3.2 / Spring Data JPA / Hibernate 6.5 | **Status**: Prescriptive
+**Repo**: `backend/` | **Stack**: Spring Boot 3.3.2 / Spring Data JPA / Hibernate 6.5 | **Status**: Implementation-validated
 
 How to restrict *which rows* a user may see without inverting the layer dependency — i.e. without injecting a service into a repository.
 
 This file owns the `STD-SEC-*` range. The repository mechanics it builds on are owned by [backend-patterns.md STD-BE-004](backend-patterns.md); the layer boundary rules by [layer-design.md STD-LAY-005 / STD-LAY-006](layer-design.md).
+
+> **Worked example in this repo**: the `invoice` feature implements every standard below. Run
+> `./mvnw spring-boot:run` and compare three callers against the same six invoices:
+>
+> ```
+> GET /api/v1/invoices?userId=1&accountId=100   →  totalRecords: 2   (region OH)
+> GET /api/v1/invoices?userId=2&accountId=100   →  totalRecords: 2   (region OH|MI AND status PAID)
+> GET /api/v1/invoices?userId=3&accountId=100   →  totalRecords: 6   (no policy rows → unrestricted)
+> ```
+>
+> Users 1 and 2 both see two rows, but not the same two. Add `&size=1` to confirm
+> `totalRecords` still reports the filtered total — that is the count query being filtered
+> by the same specification (STD-SEC-004).
+>
+> | File | Shows |
+> |---|---|
+> | `service/security/domain/EntityRestrictions.java` | STD-SEC-002 — the value object that crosses the boundary |
+> | `service/security/SecurityPolicyServiceImpl.java` | STD-SEC-005 — fail closed, and the documented "no rows" decision |
+> | `repository/security/spec/SecuritySpecifications.java` | STD-SEC-003 — `cb.conjunction()`, never `null` |
+> | `repository/invoice/InvoiceRepository.java` | STD-SEC-001 — what a repository looks like with nothing injected |
+> | `service/invoice/InvoiceServiceImpl.java` | STD-SEC-004 — resolve once, compose, one `Page<T>` |
+> | `repository/invoice/InvoiceRepositorySecurityTest.java` | `@DataJpaTest` with no mocks — the payoff |
 
 ---
 
@@ -13,10 +35,11 @@ This file owns the `STD-SEC-*` range. The repository mechanics it builds on are 
 | Item | Value | Status |
 |------|-------|--------|
 | **Coarse authorization** | `@PreAuthorize` at the web layer | ❌ Prescribed (GAP-ARC-006) |
-| **Row-level filtering** | `Specification<T>` composed at the service layer | ❌ Prescribed |
-| **Policy source** | Per-user restriction rows in the database | ❌ Prescribed |
-| **Policy resolution** | Service layer, once per request | ❌ Prescribed |
-| **Failure mode** | Fail closed — never "no restrictions" on error | ❌ Prescribed |
+| **Row-level filtering** | `Specification<T>` composed at the service layer | ✅ `invoice` feature |
+| **Policy source** | Per-user restriction rows in `user_restriction` | ✅ `invoice` feature |
+| **Policy resolution** | Service layer, once per request | ✅ `invoice` feature |
+| **Failure mode** | Fail closed — never "no restrictions" on error | ✅ `invoice` feature |
+| **Caller identity** | Request parameter (demo shim) | ⚠️ See STD-SEC-006 |
 | **Alternative considered** | Hibernate `@SQLRestriction` | ⚠️ Used for soft-delete only — see STD-SEC-003 |
 | **Alternative considered** | Database RLS (PostgreSQL / Oracle VPD) | ⚠️ Blocked on [Decision 1](TECHNICAL_DECISIONS_PENDING.md) |
 
@@ -89,7 +112,9 @@ public class InvoiceRepositoryImpl {
 - ❌ `userId` / `tenantId` / `accountId` parameters on a repository method whose only purpose is to feed a service call
 - ❌ Reading `SecurityContextHolder` inside a repository — same violation, hidden behind a static
 
-**Confidence**: Medium (prescriptive — no repository exists yet)
+**Traceability**: `repository/invoice/InvoiceRepository.java`, `repository/security/UserRestrictionRepository.java`
+
+**Confidence**: High (implemented and tested in the `invoice` feature)
 
 ---
 
@@ -138,7 +163,9 @@ public enum RestrictedEntity { INVOICE, CONTRACT, ASSET }
 - ❌ A mutable `ArrayList` field
 - ❌ Putting the `Specification` itself in the value object — that drags Criteria API into the service signature
 
-**Confidence**: Medium (prescriptive)
+**Traceability**: `service/security/domain/EntityRestrictions.java`, `AttributeRestriction.java`, `RestrictedEntity.java`
+
+**Confidence**: High (implemented)
 
 ---
 
@@ -192,7 +219,9 @@ Page<InvoiceEntity> page = invoiceRepository.findAll(spec, pageable);
 - ❌ Interpolating `allowedValues` into a `@Query` string — use `.in(...)` or a named parameter
 - ❌ Returning `null` from a security specification factory
 
-**Confidence**: Medium (prescriptive)
+**Traceability**: `repository/security/spec/SecuritySpecifications.java`, `repository/invoice/spec/InvoiceSpecifications.java`
+
+**Confidence**: High (implemented; `InvoiceRepositorySecurityTest` covers the empty and null cases)
 
 ---
 
@@ -253,7 +282,9 @@ public EntityRestrictions resolve(Long userId, Long accountId, RestrictedEntity 
 - ❌ Resolving policy per row, or inside a loop
 - ❌ `@Async` on a repository method. The stack is blocking-by-default (STD-ARC-010); async belongs at the service layer if anywhere, and `@Async` wrapped around a `CompletableFuture.supplyAsync(...)` body hops threads twice — the second onto `ForkJoinPool.commonPool()`, which is sized for CPU work, not blocking JDBC
 
-**Confidence**: Medium (prescriptive)
+**Traceability**: `service/invoice/InvoiceServiceImpl.java`
+
+**Confidence**: High (implemented; `InvoiceServiceImplTest` asserts a single `resolve` per search)
 
 ---
 
@@ -305,7 +336,9 @@ public EntityRestrictions resolve(Long userId, Long accountId, RestrictedEntity 
 - ❌ Silently skipping the filter when `userId` is null
 - ❌ Catching bare `Exception` where `DataAccessException` is meant — it also swallows the `ApiException` thrown two lines up
 
-**Confidence**: Medium (prescriptive)
+**Traceability**: `service/security/SecurityPolicyServiceImpl.java`, `AccessPolicyUnavailableException.java`
+
+**Confidence**: High (implemented; `SecurityPolicyServiceImplTest` covers the store-unavailable path)
 
 ---
 

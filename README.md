@@ -102,3 +102,10 @@ curl http://localhost:8080/api/cache/otp:user-1/exists
 
 Missing key, expired key and wrong value all return `matched: false`. Distinguishing
 them would tell a caller which keys exist.
+
+## Dependency upgrades (Snyk / CVE fixes)
+
+Upgrades are planned, applied and verified with Claude Code skills (`/dep-upgrade`,
+`/dep-inventory`, `/dep-analyze`, `/dep-apply`, `/dep-verify`). Each upgrade is documented under
+[docs/upgrades/](docs/upgrades/README.md); the repos it builds and tests are listed in
+[docs/upgrades/repos.txt](docs/upgrades/repos.txt).

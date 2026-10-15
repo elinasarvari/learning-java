@@ -37,7 +37,7 @@ Architecture guides for the **learning-java** application — a Spring Boot 3 / 
 | Backend Web API | Java 21 / Spring Boot 3.3.2 / Spring MVC | ✅ Implemented |
 | Build | Maven (wrapper 3.9.16) | ✅ Implemented |
 | Integration | Apache Camel 4.8.5 (`camel-spring-boot-starter`, `platform-http`, `camel-http`, `camel-jackson`) | ✅ Implemented |
-| Database | H2 in-memory (dev) via Spring Data JPA / Hibernate 6 | ✅ Configured, no entities yet |
+| Database | H2 in-memory (dev) via Spring Data JPA / Hibernate 6 | ✅ Implemented (`product`, `invoice`, `user_restriction`) |
 | Schema management | `spring.jpa.hibernate.ddl-auto=update` (dev only) | ⚠️ See STD-DB-004 |
 | Mapping | MapStruct | ❌ Prescribed, not on classpath |
 | Validation | Jakarta Bean Validation (`spring-boot-starter-validation`) | ✅ On classpath, unused |
@@ -185,6 +185,8 @@ Architecture guides for the **learning-java** application — a Spring Boot 3 / 
 - A list endpoint must return a per-user or per-tenant subset of a table
 - You are tempted to inject a policy/permission service into a repository
 - Reviewing where an authorization check belongs
+
+**Worked example**: the `invoice` feature — `GET /api/v1/invoices?userId=1&accountId=100`
 
 **Key concepts**:
 - Resolve policy in `service/`, pass it down as an immutable `EntityRestrictions` record — never inject a service into `repository/`
