@@ -11,11 +11,12 @@
 
 | # | Phase | Skill | State | Output | Updated |
 |---|-------|-------|-------|--------|---------|
-| 1 | Inventory | `/dep-inventory` | ⬜ not started | [01-inventory.md](01-inventory.md) | |
-| 2 | Impact analysis | `/dep-analyze` | ⬜ not started | [02-impact.md](02-impact.md) | |
-| 3 | Plan + approval | `/dep-analyze` | ⬜ not started | [03-plan.md](03-plan.md) | |
-| 4 | Apply | `/dep-apply` | ⬜ not started | [04-apply-log.md](04-apply-log.md) | |
-| 5 | Verify | `/dep-verify` | ⬜ not started | [05-verification.md](05-verification.md) | |
+| 0 | Snyk scan | `dep-scan` | ⬜ not started | [00-snyk-findings.md](00-snyk-findings.md) | |
+| 1 | Inventory | `dep-inventory` | ⬜ not started | [01-inventory.md](01-inventory.md) | |
+| 2 | Impact analysis | `dep-analyze` | ⬜ not started | [02-impact.md](02-impact.md) | |
+| 3 | Plan + approval | `dep-analyze` | ⬜ not started | [03-plan.md](03-plan.md) | |
+| 4 | Apply | `dep-apply` | ⬜ not started | [04-apply-log.md](04-apply-log.md) | |
+| 5 | Verify | `dep-verify` | ⬜ not started | [05-verification.md](05-verification.md) | |
 
 States: ⬜ not started · 🟡 in progress · ✅ done · ⛔ blocked · ⏸ awaiting approval
 

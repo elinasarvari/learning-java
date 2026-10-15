@@ -105,7 +105,8 @@ them would tell a caller which keys exist.
 
 ## Dependency upgrades (Snyk / CVE fixes)
 
-Upgrades are planned, applied and verified with Claude Code skills (`/dep-upgrade`,
-`/dep-inventory`, `/dep-analyze`, `/dep-apply`, `/dep-verify`). Each upgrade is documented under
+Upgrades are scanned, planned, applied and verified with slash commands that work in both
+GitHub Copilot (`.github/`) and Claude Code: `/dep-scan`, `/dep-inventory`, `/dep-analyze`,
+`/dep-apply`, `/dep-verify`, plus `/dep-upgrade` to resume and see the next step. Each upgrade is documented under
 [docs/upgrades/](docs/upgrades/README.md); the repos it builds and tests are listed in
 [docs/upgrades/repos.txt](docs/upgrades/repos.txt).
